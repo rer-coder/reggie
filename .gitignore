@@ -9,8 +9,8 @@
 
 has_err_pid
 
-.idea
-
+.idea/
+.mvn/
 
 *.iml
 
@@ -21,7 +21,7 @@ has_err_pid
 .project
 .settings
 .classpath
-target
+target/
 lib
 *.DS_Store
 .gradle
