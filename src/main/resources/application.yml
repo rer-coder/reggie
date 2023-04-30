@@ -44,6 +44,7 @@ spring:
           show: true #开启SQL显示，默认false
   main:
     allow-bean-definition-overriding: true #允许bean数据源覆盖
+    allow-circular-references: true
 
   redis:
     host: 10.18.1.214

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.itheima.reggie.common.R;
 import com.itheima.reggie.entity.User;
 import com.itheima.reggie.service.UserService;
+import com.itheima.reggie.utils.RedisBloomFilter;
 import com.itheima.reggie.utils.ValidateCodeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
@@ -28,7 +29,10 @@ import java.util.concurrent.TimeUnit;
 public class UserController {
     @Autowired
     private UserService userService;
+    @Autowired
     private RedisTemplate redisTemplate;
+    @Autowired
+    private RedisBloomFilter redisBloomFilter;
 
     @PostMapping("/sendMsg")
     public R<String> sendMsg(@RequestBody User user, HttpSession session) {
@@ -41,6 +45,7 @@ public class UserController {
             //调用短信服务
             //将验证码保存到session
             //session.setAttribute(phone, code);
+            redisBloomFilter.insert("validationCode", phone, 300);
             redisTemplate.opsForValue().set(phone, code, 5, TimeUnit.MINUTES);
             return R.success("验证码发送成功");
 
@@ -57,7 +62,10 @@ public class UserController {
         String code = map.get("code").toString();
         //从session中获取保存的验证码
         //Object codeInSession = session.getAttribute(phone);
-        Object codeInSession = redisTemplate.opsForValue().get(phone);
+        Object codeInSession = null;
+        if(redisBloomFilter.mayExist("validationCode", phone)){
+            codeInSession = redisTemplate.opsForValue().get(phone);
+        }
         //验证码比对
         if (codeInSession != null && codeInSession.equals(code)) {
             //如果是手机号是新用户，自动完成注册

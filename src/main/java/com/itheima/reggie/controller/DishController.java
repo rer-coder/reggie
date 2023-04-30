@@ -10,6 +10,7 @@ import com.itheima.reggie.entity.DishFlavor;
 import com.itheima.reggie.service.CategoryService;
 import com.itheima.reggie.service.DishFlavorService;
 import com.itheima.reggie.service.DishService;
+import com.itheima.reggie.utils.RedisBloomFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -43,6 +44,9 @@ public class DishController {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private RedisBloomFilter redisBloomFilter;
 
     @PostMapping
     public R<String> save(@RequestBody DishDto dishDto) {
@@ -166,12 +170,14 @@ public class DishController {
         List<DishDto> dishDtoList = null;
         // 动态构造key
         String key = "dish_" + dish.getCategoryId() + "_" + dish.getStatus();
-        dishDtoList = (List<DishDto>) redisTemplate.opsForValue().get(key);
+        // 布隆过滤器首先检查一下key的值是否存在
+        if(redisBloomFilter.mayExist("dish:filter", key)){
+            dishDtoList = (List<DishDto>) redisTemplate.opsForValue().get(key);
+        }
         // 如果有，则直接返回
         if(dishDtoList != null){
             return R.success(dishDtoList);
         }
-
         //构建查询条件对象
         LambdaQueryWrapper<Dish> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(dish.getCategoryId() != null, Dish::getCategoryId, dish.getCategoryId());
@@ -191,6 +197,8 @@ public class DishController {
             return dishDto;
         }).collect(Collectors.toList());
         // 从数据库中查出来以后，将菜品重新保存到Redis中，使得下次好取
+        // 在存入Redis值钱，首先将该菜品设置在布隆过滤器中，防止其他人恶意采集菜品信息，造成数据库压力
+        redisBloomFilter.insert("dish:filter", key, 60 * 60);
         redisTemplate.opsForValue().set(key, dishDtoList, 60, TimeUnit.MINUTES);
         return R.success(dishDtoList);
     }
