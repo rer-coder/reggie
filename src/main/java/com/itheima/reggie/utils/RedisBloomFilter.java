@@ -71,10 +71,6 @@ public class RedisBloomFilter {
             combinedHash = combinedHash + hash2;
         }
 
-        System.out.println(element + "数组下标");
-        for (long index: indices) {
-            System.out.println(index + "被选中");
-        }
         return indices;
     }
 

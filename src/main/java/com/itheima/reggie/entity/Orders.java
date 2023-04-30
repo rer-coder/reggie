@@ -13,9 +13,11 @@ public class Orders implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    // 分布式环境下生成的唯一一个ID表示符
     private Long id;
 
-    //订单号
+    // 根据代码的结果,此处存的值是String.valueOf(id),也就是id的String表示
+    // 等同于OrderDetail中的OrderID
     private String number;
 
     //订单状态 1待付款，2待派送，3已派送，4已完成，5已取消
